@@ -8,7 +8,7 @@ router = APIRouter()
 nlp_service = NLPService()
 analysis_service = AnalysisService()
 
-@router.post("/analyze")
+@router.post("/")
 async def analyze_data(request: AnalysisRequest) -> Dict:
     try:
         # Parse the user query

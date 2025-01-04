@@ -12,8 +12,8 @@ api_router.include_router(
 
 api_router.include_router(
     analysis.router,
-    prefix="/analysis",
-    tags=["analysis"]
+    prefix="/analyze",
+    tags=["analyze"]
 )
 
 # Health check endpoint

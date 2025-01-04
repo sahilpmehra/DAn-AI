@@ -9,14 +9,9 @@ from app.core.config import settings
 
 class FileService:
     def __init__(self):
-        # Initialize Redis connection using settings
-        self.redis_client = redis.Redis(
-            host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
-            db=settings.REDIS_DB,
-            password=settings.REDIS_PASSWORD
-        )
-        self.EXPIRE_TIME = settings.CACHE_EXPIRY
+        # Temporary in-memory storage instead of Redis
+        self.storage = {}
+        self.EXPIRE_TIME = 3600  # 1 hour
 
     async def process_file(self, file: UploadFile) -> pd.DataFrame:
         """Process uploaded file and convert to pandas DataFrame"""
@@ -55,30 +50,16 @@ class FileService:
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
     async def store_dataframe(self, df: pd.DataFrame) -> str:
-        """Store DataFrame in Redis and return session ID"""
+        """Store DataFrame in memory and return session ID"""
         session_id = str(uuid.uuid4())
         
-        # Convert DataFrame to JSON for storage
-        df_json = df.to_json(orient='split')
-        
-        # Store in Redis with expiry
-        self.redis_client.setex(
-            f"dataset:{session_id}",
-            self.EXPIRE_TIME,
-            df_json
-        )
-        
-        # Store column metadata
-        metadata = {
+        # Store DataFrame and metadata in memory
+        self.storage[f"dataset:{session_id}"] = df.to_json(orient='split')
+        self.storage[f"metadata:{session_id}"] = {
             'columns': list(df.columns),
             'dtypes': df.dtypes.astype(str).to_dict(),
             'shape': df.shape
         }
-        self.redis_client.setex(
-            f"metadata:{session_id}",
-            self.EXPIRE_TIME,
-            json.dumps(metadata)
-        )
         
         return session_id
 
