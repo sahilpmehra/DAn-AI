@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - MONGODB_URL=mongodb://mongodb:27017/
+      - POSTGRES_SERVER=postgres
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app/app
+    depends_on:
+      - redis
+      - mongodb
+      - postgres
+    networks:
+      - ai_analyst_network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai_analyst_network
+
+  mongodb:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - ai_analyst_network
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ai_analyst_network
+
+volumes:
+  redis_data:
+  mongodb_data:
+  postgres_data:
+
+networks:
+  ai_analyst_network:
+    driver: bridge

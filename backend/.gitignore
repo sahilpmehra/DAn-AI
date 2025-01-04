@@ -1,0 +1,18 @@
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Test cache
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Local development
+.env
+*.db
+*.sqlite3
