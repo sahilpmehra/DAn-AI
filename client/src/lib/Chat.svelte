@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { sessionId } from './stores';
+
   type Message = {
     id: string;
     content: string;
@@ -26,12 +28,12 @@
     inputMessage = '';
 
     try {
-      const response = await fetch('http://localhost:8000/analyze', {
+      const response = await fetch('http://localhost:8000/api/v1/analyze/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: currentInput }),
+        body: JSON.stringify({ message: currentInput, session_id: $sessionId }),
       });
 
       if (!response.ok) throw new Error('Failed to get response');

@@ -8,10 +8,15 @@ from io import StringIO
 from app.core.config import settings
 
 class FileService:
-    def __init__(self):
-        # Temporary in-memory storage instead of Redis
-        self.storage = {}
-        self.EXPIRE_TIME = 3600  # 1 hour
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            # Initialize storage only once
+            cls._instance.storage = {}
+            cls._instance.EXPIRE_TIME = 3600  # 1 hour
+        return cls._instance
 
     async def process_file(self, file: UploadFile) -> pd.DataFrame:
         """Process uploaded file and convert to pandas DataFrame"""
@@ -64,17 +69,17 @@ class FileService:
         return session_id
 
     async def get_dataframe(self, session_id: str) -> pd.DataFrame:
-        """Retrieve DataFrame from Redis"""
-        df_json = self.redis_client.get(f"dataset:{session_id}")
+        """Retrieve DataFrame from in-memory storage"""
+        df_json = self.storage.get(f"dataset:{session_id}")
         if df_json is None:
             raise ValueError("Session expired or not found")
             
-        return pd.read_json(df_json, orient='split')
+        return pd.read_json(StringIO(df_json), orient='split')
 
     async def get_metadata(self, session_id: str) -> Dict:
-        """Retrieve dataset metadata"""
-        metadata_json = self.redis_client.get(f"metadata:{session_id}")
-        if metadata_json is None:
+        """Retrieve dataset metadata from in-memory storage"""
+        metadata = self.storage.get(f"metadata:{session_id}")
+        if metadata is None:
             raise ValueError("Session metadata not found")
             
-        return json.loads(metadata_json) 
+        return metadata 

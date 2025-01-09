@@ -8,7 +8,6 @@ file_service = FileService()
 
 @router.post("/")
 async def upload_file(file: UploadFile = File(...)):
-    print(file.filename)
     # Validate file extension
     if not file.filename.endswith(('.csv', '.xlsx')):
         raise HTTPException(status_code=400, detail="Invalid file format")

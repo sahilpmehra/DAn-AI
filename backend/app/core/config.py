@@ -31,8 +31,8 @@ class Settings(BaseSettings):
     POSTGRES_PORT: str = "5432"
     
     # AI Configuration
-    ANTHROPIC_API_KEY: str
-    ANTHROPIC_MODEL: str = "claude-3-sonnet-20240229"
+    OPENAI_API_KEY: str
+    OPENAI_MODEL: str = "gpt-4o-mini"
     
     # File Upload Configuration
     MAX_UPLOAD_SIZE: int = 50_000_000  # 50MB in bytes

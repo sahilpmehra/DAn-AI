@@ -11,28 +11,32 @@ from sklearn.decomposition import PCA
 from app.services.file_service import FileService
 
 class AnalysisService:
-    def __init__(self):
-        self.file_service = FileService()
+    def __init__(self, file_service: FileService = None):
+        self.file_service = file_service or FileService()
 
-    async def execute_analysis(self, analysis_plan: Dict) -> Dict:
+    async def execute_analysis(self, analysis_plan: Dict, session_id: str) -> Dict:
         """Execute the analysis plan and return results"""
         try:
-            # Get the dataset
-            df = await self.file_service.get_dataframe(analysis_plan['session_id'])
+            # Get the dataset using the session_id
+            df = await self.file_service.get_dataframe(session_id)
+
+            # Get metadata for additional context
+            metadata = await self.file_service.get_metadata(session_id)
             
             # Validate required columns
             self._validate_columns(df, analysis_plan['required_columns'])
-            
+
             # Execute analysis based on type
             results = {}
             for analysis_type in analysis_plan['analysis_type']:
                 if analysis_type == 'statistical':
-                    results.update(await self._statistical_analysis(df, analysis_plan))
+                    results.update(await self._statistical_analysis(df, analysis_plan['required_columns']))
                 elif analysis_type == 'temporal':
                     results.update(await self._temporal_analysis(df, analysis_plan))
                 elif analysis_type == 'comparative':
                     results.update(await self._comparative_analysis(df, analysis_plan))
                     
+            print("Results: ", results)
             # Generate visualizations
             visualizations = await self._create_visualizations(df, analysis_plan, results)
             
@@ -297,22 +301,20 @@ class AnalysisService:
 
     async def _generate_summary(self, results: Dict, plan: Dict) -> str:
         """Generate a natural language summary of the analysis"""
-        # Use Claude to generate a natural language summary
-        messages = [
-            {
-                "role": "system",
-                "content": "Generate a concise summary of the data analysis results."
-            },
-            {
-                "role": "user",
-                "content": f"Results: {results}\nAnalysis Plan: {plan}"
-            }
-        ]
-        
-        response = self.client.messages.create(
-            model="claude-3-sonnet-20240229",
-            messages=messages,
+        # Use GPT-4 to generate a natural language summary
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Generate a concise summary of the data analysis results."
+                },
+                {
+                    "role": "user",
+                    "content": f"Results: {results}\nAnalysis Plan: {plan}"
+                }
+            ],
             temperature=0.7
         )
         
-        return response.content[0].text 
+        return response.choices[0].message.content 
