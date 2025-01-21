@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { sessionId } from './stores';
+  import { sessionId } from '$lib/stores/stores';
 
   type Message = {
     id: string;
