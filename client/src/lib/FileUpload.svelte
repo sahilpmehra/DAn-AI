@@ -127,6 +127,7 @@
     }
 </script>
 
+<h1 class="text-3xl font-bold text-center my-8">AI Data Analyst</h1>
 {#if !$isFileUploaded}
     <div
         role="button"
