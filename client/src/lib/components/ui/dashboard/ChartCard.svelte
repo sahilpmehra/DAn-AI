@@ -11,12 +11,12 @@
 
 <Card class="p-4">
     <div class="flex justify-between items-center mb-4">
-        <h3 class="font-medium">{title}</h3>
+        <h3 class="text-xl font-medium">{title}</h3>
         <Button variant="ghost" size="icon">
             <Download class="h-4 w-4" />
         </Button>
     </div>
-    <div class="aspect-video bg-gray-50 rounded-lg flex items-center justify-center">
+    <div class="bg-gray-50 rounded-lg">
         {@render children()}
     </div>
 </Card>
