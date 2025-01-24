@@ -2,10 +2,10 @@
     import { sessionId, isFileUploaded, tableDataStore, statsDataStore, analysisDataStore } from '$lib/stores/stores';
     import { Button } from '$lib/components/ui/button/index';
     import DataTable from '$lib/components/DataTable.svelte';
-    import StatsSummary from './StatsSummary.svelte';
-    import AnalysisSummary from './AnalysisSummary.svelte';
+    import StatsSummary from '$lib/StatsSummary.svelte';
+    import AnalysisSummary from '$lib/AnalysisSummary.svelte';
     import Upload from '$lib/components/ui/icons/Upload.svelte';
-    // import { toast } from 'sonner-svelte';
+    import { toast } from '$lib/hooks/use-toast';
     
     let file = $state<File | null>(null);
     let uploading = $state(false);
@@ -62,7 +62,10 @@
             if (!response.ok) throw new Error('Upload failed');
             const data = await response.json();
             sessionId.set(data.session_id);
-            // toast.success("File uploaded successfully!");
+            toast({
+                title: "Success!",
+                description: "File uploaded successfully!",
+            });
             
             // Update state with received data
             // tableDataStore.set(data.preview_data);

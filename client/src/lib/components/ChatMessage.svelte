@@ -5,7 +5,8 @@
     import Bot from '$lib/components/ui/icons/Bot.svelte';
     import User from '$lib/components/ui/icons/User.svelte';
     import { Button } from '$lib/components/ui/button';
-    import { Toaster } from '$lib/components/ui/sonner';
+    // import { Toaster } from '$lib/components/ui/sonner';
+    import { toast } from '$lib/hooks/use-toast';
 
     type ChatMessageProps = {
         content: string;
@@ -13,11 +14,14 @@
         onRegenerate?: () => void;
     }
 
-    let { content, isAi, onRegenerate } = $props<ChatMessageProps>();
+    let { content, isAi, onRegenerate }: ChatMessageProps = $props();
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(content);
-        // Toaster.success('Copied to clipboard');
+        toast({
+            title: "Success!",
+            description: "Copied to clipboard",
+        });
     }
 </script>
 
