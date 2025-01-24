@@ -8,7 +8,7 @@
         onSend: (message: string) => void;
     }
 
-    let { onSend } = $props<ChatInputProps>();
+    let { onSend }: ChatInputProps = $props();
     let message = $state('');
 
     const handleSend = () => {
@@ -31,9 +31,8 @@
         <Paperclip class="w-4 h-4" />
       </Button>
       <Textarea
-        value={message}
-        onChange={(e) => message = e.target.value}
-        onKeyDown={handleKeyDown}
+        bind:value={message}
+        onkeydown={handleKeyDown}
         placeholder="Message Dan..."
         class="min-h-0 h-10 resize-none"
       />
