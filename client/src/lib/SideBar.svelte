@@ -15,7 +15,7 @@
 
     const tabs: TabItem[] = [
         { icon: MessageSquare, label: "Chat", id: "chat" },
-        { icon: Settings, label: "Data Summary", id: "upload" },
+        { icon: Settings, label: "Data Summary", id: "data-summary" },
         { icon: Users, label: "Key Variables", id: "visualizations" },
     ];
 

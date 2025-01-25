@@ -1,6 +1,7 @@
 <script lang="ts">
   import ToastProvider from '$lib/components/ui/toast/ToastProvider.svelte';
   import FileUpload from '$lib/FileUpload.svelte';
+  import DataSummaryPage from '$lib/DataSummaryPage.svelte';
   // import Chat from '$lib/Chat.svelte';
   import Chat2 from '$lib/Chat2.svelte';
   import SideBar from '$lib/SideBar.svelte';
@@ -40,6 +41,8 @@
         {/if}
       {:else if currentRoute === 'visualizations'}
         <Dashboard />
+      {:else if currentRoute === 'data-summary'}
+        <DataSummaryPage {navigate} />
       {/if} 
     </div>
   </div>
