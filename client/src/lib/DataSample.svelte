@@ -16,8 +16,8 @@
 
 <Card>
   <CardHeader>
-    <CardTitle>Statistical Summary</CardTitle>
-    <CardDescription>Summary of the numerical columns in the dataset</CardDescription>
+    <CardTitle>Sneak Peek</CardTitle>
+    <CardDescription>A sample of the data in your dataset</CardDescription>
   </CardHeader>
   <CardContent>
     <DataTable data={data} headers={headers} />

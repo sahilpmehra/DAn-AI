@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { ChartCard, SidePanel, TopPanel } from "$lib/components/ui/dashboard";
+    import { ChartCard, SidePanel, TopPanel } from "$lib/components/dashboard";
     import { Tabs, TabsList, TabsTrigger, TabsContent } from "$lib/components/ui/tabs";
+    import { LineChart, BarChart, PieChart, ScatterPlot } from "$lib/components/charts";
 
     type Tab = {
         value: string;
@@ -16,6 +17,40 @@
     ]);
 
     let activeTab = $state('trends');
+
+    // Sample data for each chart
+    const lineChartData = {
+        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        values: [65, 59, 80, 81, 56, 55],
+        label: 'Monthly Sales'
+    };
+
+    const barChartData = {
+        labels: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
+        values: [120, 90, 60, 180, 45],
+        label: 'Product Performance'
+    };
+
+    const pieChartData = {
+        labels: ['Desktop', 'Mobile', 'Tablet'],
+        values: [450, 300, 150],
+        title: 'Traffic Sources'
+    };
+
+    const scatterChartData = {
+        points: [
+            { x: 25, y: 30000 },
+            { x: 30, y: 45000 },
+            { x: 35, y: 55000 },
+            { x: 40, y: 70000 },
+            { x: 45, y: 85000 },
+            { x: 50, y: 95000 },
+            { x: 55, y: 100000 },
+        ],
+        label: 'Age vs. Income Distribution',
+        xAxisLabel: 'Age',
+        yAxisLabel: 'Income ($)'
+    };
 </script>
 
 <div class="min-h-screen bg-gray-50">
@@ -42,7 +77,15 @@
                 </TabsList>
                 {#each tabs as tab}
                     <TabsContent value={tab.value}>
-                        <p class="text-gray-500">{tab.chartType} Placeholder</p>
+                        {#if tab.value === 'trends'}
+                            <LineChart data={lineChartData} />
+                        {:else if tab.value === 'comparison'}
+                            <BarChart data={barChartData} />
+                        {:else if tab.value === 'composition'}
+                            <PieChart data={pieChartData} />
+                        {:else if tab.value === 'correlation'}
+                            <ScatterPlot data={scatterChartData} />
+                        {/if}
                     </TabsContent>
                 {/each}
               </Tabs>

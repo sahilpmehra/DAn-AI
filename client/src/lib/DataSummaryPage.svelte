@@ -1,7 +1,7 @@
 <script lang="ts">
     import { tableDataStore, statsDataStore, analysisDataStore, sessionId } from '$lib/stores/stores';
     import { Button } from '$lib/components/ui/button/index';
-    import DataTable from '$lib/components/DataTable.svelte';
+    import DataSample from '$lib/DataSample.svelte';
     import StatsSummary from '$lib/StatsSummary.svelte';
     import AnalysisSummary from '$lib/AnalysisSummary.svelte';
 
@@ -106,7 +106,7 @@
     {:else}
         {#if $tableDataStore.headers.length > 0}
             <div class="bg-white rounded-lg shadow">
-                <DataTable data={$tableDataStore.data} headers={$tableDataStore.headers} />
+                <DataSample data={$tableDataStore.data} headers={$tableDataStore.headers} />
             </div>
         {/if}
 
