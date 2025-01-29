@@ -22,13 +22,17 @@
     const lineChartData = {
         labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
         values: [65, 59, 80, 81, 56, 55],
-        label: 'Monthly Sales'
+        label: 'Monthly Sales',
+        xAxisLabel: 'Month',
+        yAxisLabel: 'Sales'
     };
 
     const barChartData = {
         labels: ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'],
         values: [120, 90, 60, 180, 45],
-        label: 'Product Performance'
+        label: 'Product Performance',
+        xAxisLabel: 'Product',
+        yAxisLabel: 'Sales'
     };
 
     const pieChartData = {
@@ -78,13 +82,13 @@
                 {#each tabs as tab}
                     <TabsContent value={tab.value}>
                         {#if tab.value === 'trends'}
-                            <LineChart data={lineChartData} />
+                            <LineChart class="bg-gray-800 rounded-xl" data={lineChartData} />
                         {:else if tab.value === 'comparison'}
-                            <BarChart data={barChartData} />
+                            <BarChart class="bg-gray-800 rounded-xl" data={barChartData} />
                         {:else if tab.value === 'composition'}
-                            <PieChart data={pieChartData} />
+                            <PieChart class="bg-gray-800 rounded-xl" data={pieChartData} />
                         {:else if tab.value === 'correlation'}
-                            <ScatterPlot data={scatterChartData} />
+                            <ScatterPlot class="bg-gray-800 rounded-xl" data={scatterChartData} />
                         {/if}
                     </TabsContent>
                 {/each}

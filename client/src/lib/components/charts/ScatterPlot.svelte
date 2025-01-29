@@ -26,7 +26,7 @@
         label: 'Age vs. Income Correlation',
         xAxisLabel: 'Age',
         yAxisLabel: 'Income ($)'
-    } } = $props<{ data?: ScatterChartData }>();
+    }, class: className = '' } = $props<{ data?: ScatterChartData, class?: string }>();
 
     let canvas: HTMLCanvasElement;
     let chart = $state<Chart | null>(null);
@@ -78,4 +78,4 @@
     });
 </script>
 
-<canvas bind:this={canvas}></canvas> 
+<canvas bind:this={canvas} class={className}></canvas> 

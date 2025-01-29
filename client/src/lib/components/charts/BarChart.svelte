@@ -5,13 +5,15 @@
         labels: string[];
         values: number[];
         label: string;
+        xAxisLabel: string;
+        yAxisLabel: string;
     };
 
     let { data = {
         labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
         values: [12, 19, 3, 5, 2, 3],
         label: 'Product Sales'
-    } } = $props<{ data?: BarChartData }>();
+    }, class: className = '' } = $props<{ data?: BarChartData, class?: string }>();
 
     let canvas: HTMLCanvasElement;
     let chart = $state<Chart | null>(null);
@@ -40,7 +42,8 @@
                     'rgba(153, 102, 255, 1)',
                     'rgba(255, 159, 64, 1)'
                 ],
-                borderWidth: 1
+                borderWidth: 1,
+                borderRadius: 10
             }]
         };
 
@@ -56,11 +59,21 @@
                     }
                 },
                 scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: data.xAxisLabel
+                        }
+                    },
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: data.yAxisLabel
+                        }
                     }
-                }
-            }
+                },
+            },
         });
 
         return () => {
@@ -69,4 +82,4 @@
     });
 </script>
 
-<canvas bind:this={canvas}></canvas> 
+<canvas bind:this={canvas} class={className}></canvas> 

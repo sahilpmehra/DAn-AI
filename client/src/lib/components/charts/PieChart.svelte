@@ -11,7 +11,7 @@
         labels: ['Desktop', 'Mobile', 'Tablet'],
         values: [300, 500, 200],
         title: 'Device Usage Distribution'
-    } } = $props<{ data?: PieChartData }>();
+    }, class: className = '' } = $props<{ data?: PieChartData, class?: string }>();
 
     let canvas: HTMLCanvasElement;
     let chart = $state<Chart | null>(null);
@@ -24,9 +24,9 @@
             datasets: [{
                 data: data.values,
                 backgroundColor: [
-                    'rgba(255, 99, 132, 0.5)',
-                    'rgba(54, 162, 235, 0.5)',
-                    'rgba(255, 206, 86, 0.5)'
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)'
                 ],
                 borderColor: [
                     'rgba(255, 99, 132, 1)',
@@ -38,10 +38,9 @@
         };
 
         chart = new Chart(canvas, {
-            type: 'pie',
+            type: 'doughnut',
             data: chartData,
             options: {
-                responsive: true,
                 plugins: {
                     title: {
                         display: true,
@@ -57,4 +56,4 @@
     });
 </script>
 
-<canvas bind:this={canvas}></canvas> 
+<canvas bind:this={canvas} class={className}></canvas> 

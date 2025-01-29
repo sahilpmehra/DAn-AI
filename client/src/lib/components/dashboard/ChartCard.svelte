@@ -3,13 +3,14 @@
     import { Button } from "$lib/components/ui/button";
     import Download from "$lib/components/ui/icons/Download.svelte";
     
-    let { title, children } = $props<{
+    let { title, children, class: className = '' } = $props<{
         title: string;
         children: any;
+        class?: string;
     }>();
 </script>
 
-<Card class="p-4">
+<Card class={className + " p-4"}>
     <div class="flex justify-between items-center mb-4">
         <h3 class="text-xl font-medium">{title}</h3>
         <Button variant="ghost" size="icon">

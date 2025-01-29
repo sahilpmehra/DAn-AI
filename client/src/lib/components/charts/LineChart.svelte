@@ -5,13 +5,17 @@
         labels: string[];
         values: number[];
         label: string;
+        xAxisLabel: string;
+        yAxisLabel: string;
     };
 
     let { data = {
         labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
         values: [65, 59, 80, 81, 56, 55],
-        label: 'Monthly Sales'
-    } } = $props<{ data?: LineChartData }>();
+        label: 'Monthly Sales',
+        xAxisLabel: 'Month',
+        yAxisLabel: 'Sales'
+    }, class: className = '' } = $props<{ data?: LineChartData, class?: string }>();
 
     let canvas: HTMLCanvasElement;
     let chart = $state<Chart | null>(null);
@@ -40,6 +44,20 @@
                         display: true,
                         text: data.label
                     }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: data.xAxisLabel
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: data.yAxisLabel
+                        }
+                    }
                 }
             }
         });
@@ -50,4 +68,4 @@
     });
 </script>
 
-<canvas bind:this={canvas}></canvas> 
+<canvas bind:this={canvas} class={className}></canvas> 
