@@ -3,7 +3,7 @@
   import FileUpload from '$lib/FileUpload.svelte';
   import DataSummaryPage from '$lib/DataSummaryPage.svelte';
   // import Chat from '$lib/Chat.svelte';
-  import Chat2 from '$lib/Chat2.svelte';
+  import Chat from '$lib/Chat.svelte';
   import SideBar from '$lib/SideBar.svelte';
   import Dashboard from '$lib/Dashboard.svelte';
   // import Visualizations from '$lib/Visualizations.svelte';
@@ -33,7 +33,7 @@
       {#if currentRoute === 'upload'}
         <FileUpload {navigate} />
       {:else if currentRoute === 'chat'}
-        <Chat2 />
+        <Chat />
       {:else if currentRoute === 'visualizations'}
         <Dashboard />
       {:else if currentRoute === 'data-summary'}
