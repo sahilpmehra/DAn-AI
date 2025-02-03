@@ -3,6 +3,21 @@ import openai
 from app.core.config import settings
 from app.services.file_service import FileService
 import json
+from pydantic import BaseModel, Field
+
+class AnalysisStep(BaseModel):
+    id: int
+    operation: str
+    operation_type: str = Field(default="predefined")  # "predefined" or "custom"
+    description: str
+    depends_on: List[int] = Field(default_factory=list)
+    parameters: Dict = Field(default_factory=dict)
+
+class AnalysisPlan(BaseModel):
+    steps: List[AnalysisStep]
+    required_columns: List[str]
+    analysis_type: List[str]
+
 class NLPService:
     def __init__(self):
         self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
@@ -10,48 +25,38 @@ class NLPService:
         self.file_service = FileService()
 
     async def parse_query(self, query: str, session_id: str) -> Dict:
-        """Parse user query and determine required analysis steps"""
-        if session_id:
-            metadata = await self.file_service.get_metadata(session_id)
-            system_prompt = f"""
-            You are a data analysis assistant. Your task is to:
-            1. Interpret the user's question about their data
-            2. Break it down into specific analysis tasks
-            3. Determine appropriate visualizations
-            4. Return a structured analysis plan
-            
-            Metadata of the user's data file: {metadata}
-
-            Return the plan in the following JSON format:
-            {{
-                "analysis_type": ["statistical", "temporal", "comparative", etc.],
-                "required_columns": ["col1", "col2"],
-                "operations": ["mean", "correlation", "groupby", etc.],
-                "visualizations": ["line_plot", "scatter_plot", etc.],
-                "explanation_focus": ["trends", "patterns", "outliers", etc.]
-            }}
-            """
-        else:
-            raise ValueError("Please upload your data file first.")
+        """Parse user query into structured analysis steps"""
+        system_prompt = """You are a data analysis planner. Break down the user's query into executable steps. 
+        Return a JSON plan with:
+        1. steps: List of analysis steps with:
+           - id: Step identifier
+           - operation: Name of the operation
+           - operation_type: Either "predefined" for standard operations (statistical, temporal, comparative, clustering) 
+             or "custom" for complex operations requiring custom code
+           - description: Description of what the step does
+           - depends_on: List of step IDs this step depends on
+           - parameters: Parameters (columns from the dataset) needed for the operation
+        3. analysis_type: List of analysis categories (e.g., statistical, temporal, comparative)
         
+        Focus on creating a logical sequence of operations that build upon each other.
+        For complex operations that don't fit into standard categories, mark them as custom operations."""
+
+        user_prompt = f"""Query: {query}
+        Session ID: {session_id}
+        
+        Return a detailed analysis plan as JSON."""
+
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Query: {query}"}
+                {"role": "user", "content": user_prompt}
             ],
-            temperature=0
+            response_format={ "type": "json_object" }
         )
-        
-        # Parse and validate the response
-        try:
-            analysis_plan = json.loads(response.choices[0].message.content)
-            # Ensure session_id is included in the plan
-            if isinstance(analysis_plan, dict):
-                analysis_plan["session_id"] = session_id
-            return analysis_plan
-        except Exception as e:
-            raise ValueError(f"Failed to parse query: {str(e)}")
+
+        plan = response.choices[0].message.content
+        return AnalysisPlan.parse_raw(plan).dict()
 
     def _validate_analysis_plan(self, plan: Dict) -> bool:
         """Validate the analysis plan structure"""

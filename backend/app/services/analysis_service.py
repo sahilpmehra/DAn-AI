@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Any, Optional
 import pandas as pd
 import numpy as np
 import openai
@@ -11,48 +11,44 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from app.services.file_service import FileService
+import networkx as nx
+from app.services.code_execution_service import CodeExecutionService
+import json
 
 class AnalysisService:
     def __init__(self, file_service: FileService = None):
         self.file_service = file_service or FileService()
         self.client = openai.OpenAI(api_key=settings.OPENAI_API_KEY)
         self.model = settings.OPENAI_MODEL
+        self.operation_registry = {
+            'statistical': self._statistical_analysis,
+            'temporal': self._temporal_analysis,
+            'comparative': self._comparative_analysis,
+            'clustering': self._clustering_analysis
+        }
+        self.code_executor = CodeExecutionService()
 
-    async def execute_analysis(self, analysis_plan: Dict, session_id: str) -> Dict:
-        """Execute the analysis plan and return results"""
+    async def execute_analysis(self, analysis_plan: Dict, session_id: str) -> Dict[str, Any]:
+        """Execute analysis based on the plan"""
         try:
-            # Get the dataset using the session_id
+            # Get the dataset
             df = await self.file_service.get_dataframe(session_id)
-
-            # Get metadata for additional context
             metadata = await self.file_service.get_metadata(session_id)
             
             # Validate required columns
             self._validate_columns(df, analysis_plan['required_columns'])
-
-            # Execute analysis based on type
-            results = {}
-            for analysis_type in analysis_plan['analysis_type']:
-                if analysis_type == 'statistical':
-                    results.update(await self._statistical_analysis(df, analysis_plan['required_columns']))
-                elif analysis_type == 'temporal':
-                    results.update(await self._temporal_analysis(df, analysis_plan))
-                elif analysis_type == 'comparative':
-                    results.update(await self._comparative_analysis(df, analysis_plan))
-                    
-            # Generate visualizations
-            visualizations = await self._create_visualizations(df, analysis_plan, results)
             
-            # Combine results
-            results = {
-                'statistical_results': results,
-                'visualizations': visualizations,
-                # 'summary': await self._generate_summary(results, analysis_plan)
-                'summary': "The analysis of the acceptance rates showed a mean of approximately 0.455 with a standard deviation of 0.124, indicating variability in the data. The frequency metric had a mean of 0.490 but was not normally distributed. Acceptance rates demonstrated a slight negative skew, while frequency exhibited positive skewness. No outliers were found in acceptance or difficulty metrics, but two outliers were identified in frequency. Difficulty metrics could not be assessed due to missing values. Overall, the analysis included statistical and descriptive evaluations, focusing on summary statistics and value distributions."
+            # Build dependency graph
+            graph = self._build_dependency_graph(analysis_plan['steps'])
+            
+            # Execute steps in order
+            results = await self._execute_steps(graph, df)
+            
+            return {
+                'results': results,
+                'execution_trace': self._get_execution_trace(graph)
             }
             
-            return results
-        
         except Exception as e:
             raise ValueError(f"Analysis failed: {str(e)}")
 
@@ -374,6 +370,89 @@ class AnalysisService:
                 }
             ],
             temperature=0.7
+        )
+        
+        return response.choices[0].message.content 
+
+    def _build_dependency_graph(self, steps: List[Dict]) -> nx.DiGraph:
+        """Build a directed graph of analysis steps"""
+        graph = nx.DiGraph()
+        
+        for step in steps:
+            graph.add_node(step['id'], step=step)
+            for dep in step['depends_on']:
+                graph.add_edge(dep, step['id'])
+                
+        if not nx.is_directed_acyclic_graph(graph):
+            raise ValueError("Analysis plan contains circular dependencies")
+            
+        return graph
+
+    async def _execute_steps(self, graph: nx.DiGraph, df: pd.DataFrame) -> Dict[int, Any]:
+        """Execute analysis steps in topological order"""
+        results = {}
+        ordered_steps = list(nx.topological_sort(graph))
+        
+        for step_id in ordered_steps:
+            step = graph.nodes[step_id]['step']
+            try:
+                # Get input data from dependencies
+                input_data = self._get_dependency_data(step['depends_on'], results)
+                
+                if step['operation_type'] == 'custom':
+                    # Generate and execute custom code for this step
+                    custom_code = await self._generate_custom_code(step, df.columns)
+                    result = self.code_executor.execute_code(custom_code, df)
+                else:
+                    # Execute predefined operation
+                    operation = self.operation_registry.get(step['operation'])
+                    if not operation:
+                        raise ValueError(f"Unknown predefined operation: {step['operation']}")
+                    result = await operation(df, **step['parameters'], input_data=input_data)
+                    
+                results[step_id] = result
+                
+            except Exception as e:
+                graph.nodes[step_id]['error'] = str(e)
+                raise
+                
+        return results
+
+    def _get_dependency_data(self, depends_on: List[int], results: Dict[int, Any]) -> Dict:
+        """Get results from dependent steps"""
+        return {dep: results[dep] for dep in depends_on if dep in results}
+
+    def _get_execution_trace(self, graph: nx.DiGraph) -> List[Dict]:
+        """Generate execution trace for debugging and visualization"""
+        return [
+            {
+                'step_id': node,
+                'description': graph.nodes[node]['step']['description'],
+                'status': 'error' if 'error' in graph.nodes[node] else 'completed',
+                'error': graph.nodes[node].get('error')
+            }
+            for node in graph.nodes
+        ]
+
+    async def _generate_custom_code(self, step: Dict, columns: List[str]) -> str:
+        """Generate custom code for a step using GPT-4"""
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": """Generate Python code for data analysis.
+                Use pandas, numpy, matplotlib, and seaborn only.
+                The DataFrame is available as 'df'.
+                Store results in:
+                - result_data: for numerical/tabular results
+                - plot_data: for visualization data
+                - metadata: for additional information"""},
+                {"role": "user", "content": f"""
+                Generate code for the following analysis step:
+                Description: {step['description']}
+                Parameters: {json.dumps(step['parameters'])}
+                Available columns: {', '.join(columns)}
+                Previous results: {step['depends_on']}"""}
+            ]
         )
         
         return response.choices[0].message.content 

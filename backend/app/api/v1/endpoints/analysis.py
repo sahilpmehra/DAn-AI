@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from app.services.nlp_service import NLPService
 from app.services.analysis_service import AnalysisService
 from app.models.schemas import AnalysisRequest
@@ -12,16 +12,15 @@ nlp_service = NLPService()
 analysis_service = AnalysisService()
 
 @router.post("/")
-async def analyze_data(request: AnalysisRequest) -> Dict:
+async def analyze_data(request: AnalysisRequest, background_tasks: BackgroundTasks) -> Dict:
     try:
-        # Parse the user query
-        # analysis_plan = await nlp_service.parse_query(request.message, request.session_id)
-        analysis_plan = {'analysis_type': ['statistical', 'descriptive'], 'required_columns': ['acceptance', 'difficulty', 'frequency'], 'operations': ['mean', 'count', 'unique', 'describe'], 'visualizations': ['bar_chart', 'box_plot'], 'explanation_focus': ['summary statistics', 'distribution of values', 'categorical breakdown'], 'session_id': 'f06875b2-7555-4fb9-8994-34c8e964cb06'}
+        # Parse the user query and generate analysis plan
+        analysis_plan = await nlp_service.parse_query(request.message, request.session_id)
+        # analysis_plan = {'analysis_type': ['statistical', 'descriptive'], 'required_columns': ['acceptance', 'difficulty', 'frequency'], 'operations': ['mean', 'count', 'unique', 'describe'], 'visualizations': ['bar_chart', 'box_plot'], 'explanation_focus': ['summary statistics', 'distribution of values', 'categorical breakdown'], 'session_id': 'f06875b2-7555-4fb9-8994-34c8e964cb06'}
 
         # Execute the analysis
         result = await analysis_service.execute_analysis(analysis_plan, request.session_id)
         
-        # Use a custom JSON encoder if needed
         class NumpyEncoder(json.JSONEncoder):
             def default(self, obj):
                 if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
@@ -36,8 +35,13 @@ async def analyze_data(request: AnalysisRequest) -> Dict:
                     return obj.tolist()
                 return json.JSONEncoder.default(self, obj)
         
-        result_json = json.dumps(result, cls=NumpyEncoder)
+        result_json = json.dumps({
+            'analysis_plan': analysis_plan,
+            'results': result
+        }, cls=NumpyEncoder)
+        
         return {"response": result_json}
+        
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e)) 
