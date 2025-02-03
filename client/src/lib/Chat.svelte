@@ -30,10 +30,8 @@
         try {
             const response = await fetch('http://localhost:8000/api/v1/analyze/', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ message: content, session_id: $sessionId }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: content, session_id: sessionId })
             });
 
             if (!response.ok) throw new Error('Failed to get response');
@@ -45,10 +43,10 @@
                 content: data.response,
                 isAi: true,
             }];
-        } catch (err) {
+        } catch (err: any) {
             messages = [...messages, {
                 id: crypto.randomUUID(),
-                content: 'Sorry, there was an error processing your request.',
+                content: `Error: ${err.message}`,
                 isAi: true,
             }];
         } finally {
