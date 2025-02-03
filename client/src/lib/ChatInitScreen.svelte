@@ -4,10 +4,14 @@
     import MessageSquare from '$lib/components/ui/icons/MessageSquare.svelte';
 
     type WelcomeScreenProps = {
-        onStartChat: () => void;
+        handleSend: (message: string) => void;
     }
 
-    let { onStartChat } = $props<WelcomeScreenProps>();
+    let { handleSend }: WelcomeScreenProps = $props();
+
+    const onStartChat = (message: string) => {
+        handleSend(message);
+    }
 
 </script>
 
@@ -15,13 +19,13 @@
     <div class="flex-1 flex flex-col items-center justify-center p-4 chat-gradient">
         <h1 class="text-4xl font-bold mb-8 text-foreground">What can I help with?</h1>
         <div class="w-full max-w-3xl mb-8">
-            <ChatInput onSend={onStartChat} />
+            <ChatInput onSend={handleSend} />
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl w-full">
             <Button
             variant="secondary"
             class="p-4 h-auto flex flex-col items-center gap-2 hover:bg-secondary/80"
-            onclick={onStartChat}
+            onclick={() => onStartChat("Create image")}
             >
                 <MessageSquare class="w-6 h-6" />
                 <span>Create image</span>
@@ -29,7 +33,7 @@
             <Button
             variant="secondary"
             class="p-4 h-auto flex flex-col items-center gap-2 hover:bg-secondary/80"
-            onclick={onStartChat}
+            onclick={() => onStartChat("Code")}
             >
                 <MessageSquare class="w-6 h-6" />
                 <span>Code</span>
@@ -37,7 +41,7 @@
             <Button
             variant="secondary"
             class="p-4 h-auto flex flex-col items-center gap-2 hover:bg-secondary/80"
-            onclick={onStartChat}
+            onclick={() => onStartChat("Summarize text")}
             >
                 <MessageSquare class="w-6 h-6" />
                 <span>Summarize text</span>
@@ -45,7 +49,7 @@
             <Button
             variant="secondary"
             class="p-4 h-auto flex flex-col items-center gap-2 hover:bg-secondary/80"
-            onclick={onStartChat}
+            onclick={() => onStartChat("Analyze data")}
             >
                 <MessageSquare class="w-6 h-6" />
                 <span>Analyze data</span>

@@ -6,9 +6,10 @@
 
     type ChatInputProps = {
         onSend: (message: string) => void;
+        class?: string;
     }
 
-    let { onSend }: ChatInputProps = $props();
+    let { onSend, class: className = '' }: ChatInputProps = $props();
     let message = $state('');
 
     const handleSend = () => {

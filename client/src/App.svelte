@@ -6,7 +6,6 @@
   import Chat2 from '$lib/Chat2.svelte';
   import SideBar from '$lib/SideBar.svelte';
   import Dashboard from '$lib/Dashboard.svelte';
-  import ChatInitScreen from '$lib/ChatInitScreen.svelte';
   // import Visualizations from '$lib/Visualizations.svelte';
 
   // Define current route state
@@ -34,11 +33,7 @@
       {#if currentRoute === 'upload'}
         <FileUpload {navigate} />
       {:else if currentRoute === 'chat'}
-        {#if chatStarted}
-          <Chat2 />
-        {:else}
-          <ChatInitScreen onStartChat={() => chatStarted = true} />
-        {/if}
+        <Chat2 />
       {:else if currentRoute === 'visualizations'}
         <Dashboard />
       {:else if currentRoute === 'data-summary'}
