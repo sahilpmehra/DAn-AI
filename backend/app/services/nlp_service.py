@@ -47,5 +47,9 @@ class NLPService:
             response_format=AnalysisPlan
         )
 
-        plan = response.choices[0].message.content
-        return AnalysisPlan.model_validate_json(plan).model_dump()
+        plan = response.choices[0].message
+
+        if plan.refusal:
+            return plan.refusal
+
+        return AnalysisPlan.model_validate_json(plan.parsed).model_dump()

@@ -17,6 +17,13 @@ async def analyze_data(request: AnalysisRequest, background_tasks: BackgroundTas
         # Parse the user query and generate analysis plan
         analysis_plan = await nlp_service.parse_query(request.message, request.session_id)
         # analysis_plan = {'analysis_type': ['statistical', 'descriptive'], 'required_columns': ['acceptance', 'difficulty', 'frequency'], 'operations': ['mean', 'count', 'unique', 'describe'], 'visualizations': ['bar_chart', 'box_plot'], 'explanation_focus': ['summary statistics', 'distribution of values', 'categorical breakdown'], 'session_id': 'f06875b2-7555-4fb9-8994-34c8e964cb06'}
+        
+        # If analysis_plan is a string, it means it's a refusal message
+        if isinstance(analysis_plan, str):
+            return {"response": json.dumps({
+                "refusal": analysis_plan,
+                "results": None
+            })}
 
         # Execute the analysis
         result = await analysis_service.execute_analysis(analysis_plan, request.session_id)
