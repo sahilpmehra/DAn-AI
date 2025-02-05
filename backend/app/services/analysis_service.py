@@ -36,7 +36,7 @@ class AnalysisService:
             metadata = await self.file_service.get_metadata(session_id)
             
             # Validate required columns
-            self._validate_columns(df, analysis_plan['required_columns'])
+            # self._validate_columns(df, analysis_plan['required_columns'])
             
             # Build dependency graph
             graph = self._build_dependency_graph(analysis_plan['steps'])
@@ -399,16 +399,20 @@ class AnalysisService:
                 # Get input data from dependencies
                 input_data = self._get_dependency_data(step['depends_on'], results)
                 
-                if step['operation_type'] == 'custom':
-                    # Generate and execute custom code for this step
-                    custom_code = await self._generate_custom_code(step, df.columns)
-                    result = self.code_executor.execute_code(custom_code, df)
-                else:
-                    # Execute predefined operation
-                    operation = self.operation_registry.get(step['operation'])
-                    if not operation:
-                        raise ValueError(f"Unknown predefined operation: {step['operation']}")
-                    result = await operation(df, **step['parameters'], input_data=input_data)
+                # if step['operation_type'] == 'custom':
+                #     # Generate and execute custom code for this step
+                #     custom_code = await self._generate_custom_code(step, df.columns)
+                #     result = self.code_executor.execute_code(custom_code, df)
+                # else:
+                #     # Execute predefined operation
+                #     operation = self.operation_registry.get(step['operation'])
+                #     if not operation:
+                #         raise ValueError(f"Unknown predefined operation: {step['operation']}")
+                #     result = await operation(df, **step['parameters'], input_data=input_data)
+
+                # Generate and execute custom code for this step
+                custom_code = await self._generate_custom_code(step, df.columns, input_data)
+                result = self.code_executor.execute_code(custom_code, df)
                     
                 results[step_id] = result
                 
@@ -434,8 +438,8 @@ class AnalysisService:
             for node in graph.nodes
         ]
 
-    async def _generate_custom_code(self, step: Dict, columns: List[str]) -> str:
-        """Generate custom code for a step using GPT-4"""
+    async def _generate_custom_code(self, step: Dict, columns: List[str], input_data: Dict) -> str:
+        """Generate custom code for a step"""
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -451,7 +455,8 @@ class AnalysisService:
                 Description: {step['description']}
                 Parameters: {json.dumps(step['parameters'])}
                 Available columns: {', '.join(columns)}
-                Previous results: {step['depends_on']}"""}
+                Previous results: {step['depends_on']}
+                Input data: {input_data}"""}
             ]
         )
         
