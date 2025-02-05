@@ -19,8 +19,6 @@ class DataSummaryService:
             for col, stats in summary_stats.items() if isinstance(stats.get('Mean'), (int, float))
         ])
 
-        print(stats_text)
-
         prompt = f"""Provide a concise summary (2-3 sentences) of the data and list 2-4 key variables that appear most important.
         Format the response as JSON with two fields:
         1. 'summary': A brief analysis of the data
@@ -120,7 +118,6 @@ class DataSummaryService:
                 "headers": list(df.columns),
                 "data": preview_df.to_dict('records')
             }
-            print(preview_data["data"])
 
             # 2. Summary Statistics
             numeric_cols = df.select_dtypes(include=[np.number]).columns
@@ -148,15 +145,12 @@ class DataSummaryService:
 
             # Store column data types (for future use)
             dtypes = df.dtypes.to_dict()
-            print(summary_stats["data"])
-            print(dtypes)
 
             # 3. Analysis Summary
             analysis_summary = {'summary': 'The dataset contains multiple variables with a mix of categorical and numerical data. Observations suggest a correlation between certain key variables, indicating potential relationships that may warrant further investigation.', 'keyVariables': ['variable1', 'variable2', 'variable3', 'variable4'], 'problematicVariables': []}
             # analysis_summary = self.generate_analysis_summary(df, metrics)
             # problematicVariables = [col for col in df.columns if df[col].isnull().sum() / len(df) > 0.2]
             # analysis_summary["problematicVariables"] = problematicVariables            
-            print(analysis_summary)
 
             return {
                 "preview_data": preview_data,

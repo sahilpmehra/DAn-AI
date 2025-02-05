@@ -15,9 +15,9 @@ analysis_service = AnalysisService()
 async def analyze_data(request: AnalysisRequest, background_tasks: BackgroundTasks) -> Dict:
     try:
         # Parse the user query and generate analysis plan
-        analysis_plan = await nlp_service.parse_query(request.message, request.session_id)
-        # analysis_plan = {'analysis_type': ['statistical', 'descriptive'], 'required_columns': ['acceptance', 'difficulty', 'frequency'], 'operations': ['mean', 'count', 'unique', 'describe'], 'visualizations': ['bar_chart', 'box_plot'], 'explanation_focus': ['summary statistics', 'distribution of values', 'categorical breakdown'], 'session_id': 'f06875b2-7555-4fb9-8994-34c8e964cb06'}
-        
+        # analysis_plan = await nlp_service.parse_query(request.message, request.session_id)
+        analysis_plan = {'steps': [{'id': 1, 'operation': 'Group by Difficulty', 'description': "Group the dataset by the 'difficulty' column to count the number of questions in each category (easy, medium, hard).", 'depends_on': [], 'required_columns': ['difficulty']}, {'id': 2, 'operation': 'Count Questions', 'description': 'Count the number of occurrences of each difficulty level from the grouped data.', 'depends_on': [1], 'required_columns': ['difficulty']}, {'id': 3, 'operation': 'Prepare Data for Visualization', 'description': 'Organize the counted data into a format suitable for creating a bar chart, typically a DataFrame with difficulty levels as one column and counts as another.', 'depends_on': [2], 'required_columns': []}, {'id': 4, 'operation': 'Create Bar Chart', 'description': 'Generate a bar chart visualization of the distribution of questions across different difficulty levels using the prepared data.', 'depends_on': [3], 'required_columns': []}]}
+
         # If analysis_plan is a string, it means it's a refusal message
         if isinstance(analysis_plan, str):
             return {"response": json.dumps({
