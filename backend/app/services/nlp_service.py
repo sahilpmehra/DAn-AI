@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 VizType = Literal["Bar", "Line", "Pie", "Table", "Other", None]
 
 class AnalysisStep(BaseModel):
-    id: int
+    id: str
     operation: str
     description: str
     depends_on: List[int] = Field(default_factory=list)
@@ -49,13 +49,13 @@ class NLPService:
         system_prompt = f"""You are a data analysis planner. You will help break down the user's query into executable steps.
 
         Each step should have the following fields:
-           - id: Step identifier
+           - id: Step identifier e.g. "1", "2", "3" etc.
            - operation: Name of the operation
            - description: Description of what the step does
            - depends_on: List of step IDs this step depends on
            - required_columns: Columns from the dataset needed for the operation
            - has_visualization: Whether the step has a visualization
-           - visualization_type: The type of visualization to use in the step i.e. Bar, Line, Pie, Table or other. It should be None if the step does not have a visualization.
+           - visualization_type: The type of visualization to use in the step i.e. Bar, Line, Pie, Table or Other. It should be None if the step does not have a visualization.
         
         Focus on creating a logical sequence of operations that build upon each other.
         For complex operations that don't fit into standard categories, mark them as custom operations.

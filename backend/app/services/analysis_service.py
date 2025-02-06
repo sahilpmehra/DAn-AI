@@ -386,53 +386,59 @@ class AnalysisService:
         """Build a directed graph of analysis steps"""
         graph = nx.DiGraph()
         
+        # Add nodes with their attributes
         for step in steps:
-            graph.add_node(step['id'], step=step)
-            for dep in step['depends_on']:
-                graph.add_edge(dep, step['id'])
+            step_id = str(step['id'])
+            graph.add_node(step_id)
+            nx.set_node_attributes(graph, {step_id: {'step': step}})
+            
+        # Add edges for dependencies
+        for step in steps:
+            step_id = str(step['id'])
+            for dep in step.get('depends_on', []):
+                graph.add_edge(str(dep), step_id)
                 
+        # Verify graph integrity
         if not nx.is_directed_acyclic_graph(graph):
             raise ValueError("Analysis plan contains circular dependencies")
             
         return graph
 
-    async def _execute_steps(self, graph: nx.DiGraph, df: pd.DataFrame) -> Dict[int, Any]:
+    async def _execute_steps(self, graph: nx.DiGraph, df: pd.DataFrame) -> Dict[str, Any]:
         """Execute analysis steps in topological order"""
         results = {}
         ordered_steps = list(nx.topological_sort(graph))
         
         for step_id in ordered_steps:
-            step = graph.nodes[step_id]['step']
             try:
-                # Get input data from dependencies
-                input_data = self._get_dependency_data(step['depends_on'], results)
+                step = graph.nodes[step_id]['step']
                 
-                # if step['operation_type'] == 'custom':
-                #     # Generate and execute custom code for this step
-                #     custom_code = await self._generate_custom_code(step, df.columns)
-                #     result = self.code_executor.execute_code(custom_code, df)
-                # else:
-                #     # Execute predefined operation
-                #     operation = self.operation_registry.get(step['operation'])
-                #     if not operation:
-                #         raise ValueError(f"Unknown predefined operation: {step['operation']}")
-                #     result = await operation(df, **step['parameters'], input_data=input_data)
+                # Get input data from dependencies
+                input_data = self._get_dependency_data(
+                    [str(dep) for dep in step['depends_on']], 
+                    results
+                )
 
                 # Generate and execute custom code for this step
-                custom_code = await self._generate_custom_code(step, df.columns, input_data)
-                print(custom_code)
-                print(asd)
-                result = self.code_executor.execute_code(custom_code, df)
+                result = await self._generate_custom_code(step, df, input_data)
+                # result = self.code_executor.execute_code(custom_code, df, input_data)
                     
-                results[step_id] = result
+                # Store results and metadata
+                results[step_id] = {
+                    'step_result': result,
+                    'metadata': {
+                        'description': step['description'],
+                        'columns_used': step['required_columns'],
+                    }
+                }
                 
-            except Exception as e:
+            except Exception as e: # TODO: Check if this is needed?
                 graph.nodes[step_id]['error'] = str(e)
                 raise
                 
         return results
 
-    def _get_dependency_data(self, depends_on: List[int], results: Dict[int, Any]) -> Dict:
+    def _get_dependency_data(self, depends_on: List[str], results: Dict[str, Any]) -> Dict:
         """Get results from dependent steps"""
         return {dep: results[dep] for dep in depends_on if dep in results}
 
@@ -448,11 +454,29 @@ class AnalysisService:
             for node in graph.nodes
         ]
 
-    async def _generate_custom_code(self, step: Dict, columns: List[str], input_data: Dict) -> str:
-        """Generate custom code for a step"""
-        # if step['has_visualization']:
+    async def _get_code_from_llm(self, system_prompt: str, user_prompt: str, error_context: str = None) -> str:
+        """Helper method to get code from LLM with optional error context"""
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        if error_context:
+            messages.append({
+                "role": "user", 
+                "content": f"The previous code generated resulted in the following error: {error_context}. Please provide a corrected version."
+            })
+        
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=0
+        )
+        
+        return response.choices[0].message.content
 
-
+    async def _generate_custom_code(self, step: Dict, df: pd.DataFrame, input_data: Dict) -> str:
+        """Generate custom code for a step with retry logic"""
         system_prompt = """Generate Python code for data analysis using pandas and numpy only.
                 The DataFrame is available as 'df'.
                 
@@ -471,16 +495,17 @@ class AnalysisService:
                 3. **Reusability**  
                 Ensure `data` is serializable and includes metadata for context.
 
-                Access previous step results using: input_data[step_id]['step_result'] and input_data[step_id]['metadata']
+                Access previous step results using: input_data[step_id]['step_result'] and input_data[step_id]['metadata']. Only use the data from the previous step if the current step is dependent on the previous step.
                 Assume that the following libraries are available: pandas, numpy and json
+                Only provide the code for the current step, do not include any other steps or code. Strictly follow the step description.
 
-                Example Task:  
+                Example Task 1:  
                 User Query: "Calculate monthly sales and prepare for a line chart."  
                 Your Code:
                 ```python
                 import pandas as pd
 
-                def process_data(df: pd.DataFrame) -> dict:
+                def process_data(df: pd.DataFrame, input_data: dict) -> dict:
                     try:
                         # Validate input
                         if "date" not in df.columns or "sales" not in df.columns:
@@ -503,7 +528,57 @@ class AnalysisService:
                             "error": None
                         }
                     except Exception as e:
-                        return {"error": f"Error: {str(e)}"}```"""
+                        return {"error": f"Error: {str(e)}"}```
+                        
+                Example Task 2:
+                User Query: "Calculate total sales by region and product category using the cleaned dataset from step 1"
+                Your Code:
+                ```python
+                def process_data(df: pd.DataFrame, input_data: dict) -> dict:
+                    try:
+                        # Get cleaned data from previous step
+                        if '1' not in input_data or 'data' not in input_data['1']['step_result']:
+                            return {"error": "Missing required input from cleaning step"}
+                        
+                        # Convert previous step's data back to DataFrame
+                        df = pd.DataFrame.from_records(input_data['1']['step_result']['data'])
+                        
+                        # Validate required columns
+                        required_cols = ['region', 'category', 'sales']
+                        if not all(col in df.columns for col in required_cols):
+                            return {"error": "Missing required columns: region, category, sales"}
+                        
+                        # Calculate aggregations
+                        sales_summary = df.groupby(['region', 'category'])['sales'].agg([
+                            'sum', 'mean', 'count'
+                        ]).reset_index()
+                        
+                        # Pivot for easier visualization
+                        pivot_table = sales_summary.pivot(
+                            index='region', 
+                            columns='category', 
+                            values='sum'
+                        ).fillna(0)
+                        
+                        # Include metadata about input data
+                        input_stats = input_data['1']['step_result']['stats']
+                        
+                        return {
+                            "data": sales_summary.to_dict(orient="records"),
+                            "chart_data": None,
+                            "stats": {
+                                "total_sales": df['sales'].sum(),
+                                "regions": len(df['region'].unique()),
+                                "categories": len(df['category'].unique()),
+                                "rows_analyzed": len(df),
+                                "source_data_stats": input_stats  # Include stats from previous step
+                            },
+                            "error": None,
+                        }
+                    except Exception as e:
+                        return {
+                            "error": f"Error in sales analysis: {str(e)}",
+                        }```"""
         
         user_prompt = f"""
                 Generate code for the following analysis step:
@@ -511,18 +586,35 @@ class AnalysisService:
                 Description: {step['description']}
                 Required columns: {json.dumps(step['required_columns'])}
                 Dependencies (previous steps): {step['depends_on']}
-                Input data from previous steps: {json.dumps(input_data)}"""
+                Input data from previous steps: {json.dumps(input_data)}
+                Visualization Required: {step['has_visualization']}"""
         
         if step['has_visualization']:
+            chart_schema = ChartSchema[step['visualization_type']]()
             user_prompt += f"""
-                The visualization should follow the following schema: {ChartSchema[step['visualization_type']]}"""
+                The chart data should follow the following schema: {chart_schema.model_dump_json()}"""
         
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": {system_prompt}},
-                {"role": "user", "content": {user_prompt}}
-            ]
-        )
+        # Initialize variables for retry logic
+        max_retries = 3
+        current_attempt = 0
+        last_error = None
         
-        return response.choices[0].message.content 
+        while current_attempt < max_retries:
+            # Get code from LLM
+            code = await self._get_code_from_llm(system_prompt, user_prompt, str(last_error) if last_error else None)
+            
+            # Test execute the code
+            result = self.code_executor.execute_code(code, df, input_data)
+            
+            # If we reach here, code executed successfully
+            if result['error'] is None:
+                return result
+            else:
+                last_error = result['error']
+                current_attempt += 1
+            
+            if current_attempt >= max_retries:
+                raise ValueError(f"Failed to generate valid code after {max_retries} attempts. Last error: {str(last_error)}")
+        
+        # This should never be reached due to the raise in the loop
+        raise ValueError("Unexpected end of code generation") 
