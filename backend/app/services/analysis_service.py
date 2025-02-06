@@ -14,6 +14,14 @@ from app.services.file_service import FileService
 import networkx as nx
 from app.services.code_execution_service import CodeExecutionService
 import json
+from app.models.schemas import BarChartSchema, LineChartSchema, PieChartSchema, TableSchema, OtherChartSchema
+ChartSchema = {
+    "Bar": BarChartSchema,
+    "Line": LineChartSchema,
+    "Pie": PieChartSchema,
+    "Table": TableSchema,
+    "Other": OtherChartSchema
+}
 
 class AnalysisService:
     def __init__(self, file_service: FileService = None):
@@ -412,6 +420,8 @@ class AnalysisService:
 
                 # Generate and execute custom code for this step
                 custom_code = await self._generate_custom_code(step, df.columns, input_data)
+                print(custom_code)
+                print(asd)
                 result = self.code_executor.execute_code(custom_code, df)
                     
                 results[step_id] = result
@@ -440,23 +450,78 @@ class AnalysisService:
 
     async def _generate_custom_code(self, step: Dict, columns: List[str], input_data: Dict) -> str:
         """Generate custom code for a step"""
+        # if step['has_visualization']:
+
+
+        system_prompt = """Generate Python code for data analysis using pandas and numpy only.
+                The DataFrame is available as 'df'.
+                
+                1. **Output Format**  
+                Return a dictionary with:
+                - `data`: Processed data for future steps (e.g., cleaned/aggregated data) otherwise `None`.
+                - `chart_data`: Data structured for Chart.js (if visualization is needed) otherwise `None`.
+                - `stats`: Summary statistics (e.g., mean, count) otherwise `None`.
+                - `error`: `None` if successful, else a string describing the issue.
+
+                2. **Data Types**  
+                - For tabular data: Use `df.to_dict(orient="records")`.
+                - For time-series: Structure `chart_data` for line charts.
+                - For categorical data: Structure `chart_data` for bar/pie charts.
+
+                3. **Reusability**  
+                Ensure `data` is serializable and includes metadata for context.
+
+                Access previous step results using: input_data[step_id]['step_result'] and input_data[step_id]['metadata']
+                Assume that the following libraries are available: pandas, numpy and json
+
+                Example Task:  
+                User Query: "Calculate monthly sales and prepare for a line chart."  
+                Your Code:
+                ```python
+                import pandas as pd
+
+                def process_data(df: pd.DataFrame) -> dict:
+                    try:
+                        # Validate input
+                        if "date" not in df.columns or "sales" not in df.columns:
+                            return {"error": "Missing 'date' or 'sales' column"}
+                        
+                        # Process data
+                        df["date"] = pd.to_datetime(df["date"])
+                        monthly_sales = df.resample("M", on="date")["sales"].sum().reset_index()
+                        
+                        # Structure for Chart.js
+                        chart_data = {
+                            "labels": monthly_sales["date"].dt.strftime("%Y-%m").tolist(),
+                            "datasets": [{"label": "Monthly Sales", "data": monthly_sales["sales"].tolist()}]
+                        }
+                        
+                        return {
+                            "data": monthly_sales.to_dict(orient="records"),
+                            "chart_data": chart_data,
+                            "stats": {"total_months": len(monthly_sales)},
+                            "error": None
+                        }
+                    except Exception as e:
+                        return {"error": f"Error: {str(e)}"}```"""
+        
+        user_prompt = f"""
+                Generate code for the following analysis step:
+                id: {step['id']}
+                Description: {step['description']}
+                Required columns: {json.dumps(step['required_columns'])}
+                Dependencies (previous steps): {step['depends_on']}
+                Input data from previous steps: {json.dumps(input_data)}"""
+        
+        if step['has_visualization']:
+            user_prompt += f"""
+                The visualization should follow the following schema: {ChartSchema[step['visualization_type']]}"""
+        
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": """Generate Python code for data analysis.
-                Use pandas, numpy, matplotlib, and seaborn only.
-                The DataFrame is available as 'df'.
-                Store results in:
-                - result_data: for numerical/tabular results
-                - plot_data: for visualization data
-                - metadata: for additional information"""},
-                {"role": "user", "content": f"""
-                Generate code for the following analysis step:
-                Description: {step['description']}
-                Parameters: {json.dumps(step['parameters'])}
-                Available columns: {', '.join(columns)}
-                Previous results: {step['depends_on']}
-                Input data: {input_data}"""}
+                {"role": "system", "content": {system_prompt}},
+                {"role": "user", "content": {user_prompt}}
             ]
         )
         

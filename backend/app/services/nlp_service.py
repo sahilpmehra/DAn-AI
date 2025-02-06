@@ -1,9 +1,12 @@
-from typing import Dict, List
+from typing import Dict, List, Literal
 import openai
 from app.core.config import settings
 from app.services.file_service import FileService
 import json
 from pydantic import BaseModel, Field
+
+# Define the VizType
+VizType = Literal["Bar", "Line", "Pie", "Table", "Other", None]
 
 class AnalysisStep(BaseModel):
     id: int
@@ -11,7 +14,8 @@ class AnalysisStep(BaseModel):
     description: str
     depends_on: List[int] = Field(default_factory=list)
     required_columns: List[str] = Field(default_factory=list)
-
+    has_visualization: bool = False
+    visualization_type: VizType = None
 class AnalysisPlan(BaseModel):
     steps: List[AnalysisStep]
 
@@ -50,6 +54,8 @@ class NLPService:
            - description: Description of what the step does
            - depends_on: List of step IDs this step depends on
            - required_columns: Columns from the dataset needed for the operation
+           - has_visualization: Whether the step has a visualization
+           - visualization_type: The type of visualization to use in the step i.e. Bar, Line, Pie, Table or other. It should be None if the step does not have a visualization.
         
         Focus on creating a logical sequence of operations that build upon each other.
         For complex operations that don't fit into standard categories, mark them as custom operations.
