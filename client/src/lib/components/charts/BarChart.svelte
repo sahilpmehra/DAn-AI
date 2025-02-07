@@ -1,12 +1,13 @@
 <script lang="ts">
     import Chart from 'chart.js/auto';
+    import { untrack } from 'svelte';
 
     type BarChartData = {
         labels: string[];
         values: number[];
         label: string;
-        xAxisLabel: string;
-        yAxisLabel: string;
+        xAxisLabel?: string;
+        yAxisLabel?: string;
     };
 
     let { data = {
@@ -16,64 +17,57 @@
     }, class: className = '' } = $props<{ data?: BarChartData, class?: string }>();
 
     let canvas: HTMLCanvasElement;
-    let chart = $state<Chart | null>(null);
+    let chart: Chart | null = null;
 
     $effect(() => {
         if (!canvas) return;
 
-        const chartData = {
-            labels: data.labels,
-            datasets: [{
-                label: data.label,
-                data: data.values,
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.5)',
-                    'rgba(54, 162, 235, 0.5)',
-                    'rgba(255, 206, 86, 0.5)',
-                    'rgba(75, 192, 192, 0.5)',
-                    'rgba(153, 102, 255, 0.5)',
-                    'rgba(255, 159, 64, 0.5)'
-                ],
-                borderColor: [
-                    'rgba(255, 99, 132, 1)',
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(255, 206, 86, 1)',
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(153, 102, 255, 1)',
-                    'rgba(255, 159, 64, 1)'
-                ],
-                borderWidth: 1,
-                borderRadius: 10
-            }]
-        };
-
-        chart = new Chart(canvas, {
-            type: 'bar',
-            data: chartData,
-            options: {
-                responsive: true,
-                plugins: {
-                    title: {
-                        display: true,
-                        text: data.label
-                    }
+        untrack(() => {
+            if (chart) chart.destroy();
+            chart = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: [...data.labels],
+                    datasets: [{
+                        label: data.label,
+                        data: [...data.values],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.5)',
+                            'rgba(54, 162, 235, 0.5)',
+                            'rgba(255, 206, 86, 0.5)',
+                            'rgba(75, 192, 192, 0.5)',
+                            'rgba(153, 102, 255, 0.5)',
+                            'rgba(255, 159, 64, 0.5)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 10
+                    }]
                 },
-                scales: {
-                    x: {
+                options: {
+                    responsive: true,
+                    plugins: {
                         title: {
                             display: true,
-                            text: data.xAxisLabel
+                            text: data.label
                         }
                     },
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: data.yAxisLabel
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: data.xAxisLabel
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: data.yAxisLabel
+                            }
                         }
-                    }
+                    },
                 },
-            },
+            });
         });
 
         return () => {

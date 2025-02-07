@@ -147,7 +147,7 @@ class DataSummaryService:
             dtypes = df.dtypes.to_dict()
 
             # 3. Analysis Summary
-            analysis_summary = {'summary': 'The dataset contains multiple variables with a mix of categorical and numerical data. Observations suggest a correlation between certain key variables, indicating potential relationships that may warrant further investigation.', 'keyVariables': ['variable1', 'variable2', 'variable3', 'variable4'], 'problematicVariables': []}
+            analysis_summary = {'summary': 'The dataset contains information about Leetcode Questions with their id, difficulty level, frequency of occurence and links', 'keyVariables': ['difficulty', 'frequency', 'id'], 'problematicVariables': []}
             # analysis_summary = self.generate_analysis_summary(df, metrics)
             # problematicVariables = [col for col in df.columns if df[col].isnull().sum() / len(df) > 0.2]
             # analysis_summary["problematicVariables"] = problematicVariables            

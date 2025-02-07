@@ -429,6 +429,8 @@ class AnalysisService:
                     'metadata': {
                         'description': step['description'],
                         'columns_used': step['required_columns'],
+                        'has_visualization': step['has_visualization'],
+                        'visualization_type': step['visualization_type']
                     }
                 }
                 

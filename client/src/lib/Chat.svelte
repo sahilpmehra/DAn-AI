@@ -37,11 +37,9 @@
             if (!response.ok) throw new Error('Failed to get response');
 
             const data = await response.json();
-            const parsedResponse = JSON.parse(data.response);
-            
             messages = [...messages, {
                 id: crypto.randomUUID(),
-                content: parsedResponse.refusal || parsedResponse.results,
+                content: data.refusal || JSON.stringify(data.results),
                 isAi: true,
             }];
         } catch (err: any) {
